@@ -46,4 +46,5 @@ function Append-ToEnvironment{ param( [string] $var, [string] $value, [System.En
     [System.Environment]::SetEnvironmentVariable( $var, (("$([System.Environment]::GetEnvironmentVariable($var, $context))".Split(';',[StringSplitOptions]'RemoveEmptyEntries') + $val | select -uniq ) -join ';') , $context )
 }
 
-Append-ToEnvironment "PATHEXT", ".ps1"
+Append-ToEnvironment "PATHEXT" ".ps1"
+Append-ToEnvironment "PATHEXT" ".ps1" "Process"

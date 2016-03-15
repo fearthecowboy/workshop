@@ -1,35 +1,25 @@
 # build and publish the packages
 param (
-    [Parameter(HelpMessage="Publish to the repository")]
-    [Switch]
-    $publish,
-    
-    [Parameter(HelpMessage="Nuget Repository to push to")]
-    [string]
-    $repository = "nuget.org"
+    [Parameter(HelpMessage="Nuget Repository to push to")][string]$repository = "nuget.org"
+    ,[Parameter(HelpMessage="Sets Configuration to 'debug' ")][Switch] $dbg
+    ,[Parameter(HelpMessage="Configuration to build (default='release') ")][string] $config = "release"
 )
 try {
-    $InformationPreference=2
-    ipmo "$PSScriptRoot\Project.Common.psm1" -force -Scope local -ea 0 -wa 0 
-    Set-Color gray
-    
-    $p = call -async { 
-        cd $using:pwd
-        build-package -release  
-    }  
-    wait-job $p
-    write-status -fore red "done."
-    
-    $packages = receive-job $p 
+    ipmo "$PSScriptRoot\FearTheCowboy.Workshop.psm1" -force -ea 0 -wa 0  -Scope local ; push-state ; $InformationPreference=2 
 
-write-status -fore red "done again."
-    
-    if( $packages ) {
-        $packages |% { 
-            write-status -fore blue "$_"
+    Find-SolutionFile |%% { 
+        $solutionRoot, $projects, $frameworks, $loneProject = Parse-SolutionFile $_
+        $config = (= $dbg ? "debug" : $config )
+        
+        dir -ea 0 -recurse "$solutionRoot\packages\$config\*.nupkg" | %% { 
+            write-output $_
+        } -else { 
+            write-status -error "Unable to find built packages for configuration '$config' in $solutionRoot\packages\$config\"    
         }
+    } -else {
+        write-status -error "Unable to find root of project (no project.json or global.json file found) in tree ($pwd)."
     }
 
 } finally {
-    Restore-state
+    pop-state
 }
